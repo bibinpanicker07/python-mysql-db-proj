@@ -1,13 +1,33 @@
 from flask import Flask, jsonify, render_template, request
 import pymysql
+import boto3
+import json
+
+def get_secret(secret_name, region_name="us-east-1"):
+    session = boto3.session.Session()
+    client = session.client(
+        service_name="secretsmanager",
+        region_name=region_name
+    )
+
+    response = client.get_secret_value(SecretId=secret_name)
+    secret = json.loads(response['SecretString'])
+    return secret
+
+# Usage
+secret_name = "rds-db-credentials"
+region = "us-east-1"
+credentials = get_secret(secret_name, region)
+
+
 
 app = Flask(__name__)
 
 def get_db_connection():
     connection = pymysql.connect(host='mydb.crc0ywe00jj8.us-east-1.rds.amazonaws.com',  # Replace with your RDS endpoint
-                                 user='dbuser',      # Replace with your RDS username
-                                 password='dbpassword',  # Replace with your RDS password
-                                 db='devprojdb',   # Replace with your database name
+                                 user=credentials['username'],
+                                 password=credentials['password'],
+                                 db="devprojdb",
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
     return connection
